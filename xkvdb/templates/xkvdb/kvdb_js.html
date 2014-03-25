@@ -1,0 +1,122 @@
+{% load i18n %}
+<script>
+var pages = new Array();
+var lastkey;
+var currentpage = 0;
+$(document).ready(function(){
+    var options = {
+        data: {'marker': null},
+        beforeSubmit: function(arr, $form, options){
+            $('#kv_result > tbody > tr').remove();
+        },
+        success: function(data){
+            if (data['code'] == 0){
+                pages = new Array();
+                add_table_row(data['msg']);
+                $('#exp_prefix').val($('#kv_prefix').val());
+                $('#exp_limit').val($('#kv_limit').val());
+            }
+        },
+    }
+    $('#kvdb_form').ajaxForm(options);
+    $('#kvdb_form').submit(function(){
+        $('#kv_result > tbody > tr').remove();
+    })
+    $('#kvdb_add_form').ajaxForm(options);
+})
+function add_table_row(data){
+    for (var i=0;i < data.length;i++){
+        var obj = data[i];
+        var value = obj.value;
+        if (!obj.value){ value = 'None'};
+        var html = '<tr><td>' + (i+1).toString() + '</td>';
+        html += '<td id="key_'+ i + '" class="kv_key">' + obj.key + '</td>';
+        html += '<td><div contenteditable="true">' + value + '</div></td>';
+        html += '<td><a href="javascript:void(0);" class="kv_del">{% trans "Del" %}</a></td></tr>';
+        $('#kv_result > tbody:last').append(html);
+    }
+    lastkey = $('#kv_result > tbody > tr:last ').find('td').eq(1).html();
+    pages[currentpage] = lastkey;
+}
+function kv_previous(){
+    var index;
+    if(currentpage == 1){
+        index = null;
+        currentpage = 0;
+    } else if (currentpage == 0){
+        index = null;
+    } 
+    else {
+        index = pages[currentpage - 2];
+        currentpage -= 1;
+    }
+    var options = {
+            data: {'marker': index},
+            beforeSubmit: function(arr, $form, options){
+                $('#kv_result > tbody > tr').remove();
+            },
+            success: function(data){
+                if ( data['code'] == 0 ){
+                    add_table_row(data['msg']);
+                }
+            }
+    }
+    $('#kvdb_form').ajaxSubmit(options);
+}
+function kv_next(){
+    var index = pages[currentpage + 1];
+    currentpage += 1;
+    var options = {
+        data: {'marker': lastkey},
+        beforeSubmit: function(arr, $form, options){
+            $('#kv_result > tbody > tr').remove();
+        },
+        success: function(data){
+            if ( data['code'] == 0 ){
+                add_table_row(data['msg']);
+            }
+        }
+    }
+    $('#kvdb_form').ajaxSubmit(options);
+}
+$('body').on('focus', '[contenteditable]', function(){
+    var $this = $(this);
+    $this.data('before', $this.html());
+    return $this;
+}).on('focusout', '[contenteditable]', function(){
+    var $this = $(this);
+    if ($this.data('before') !== $this.html()){
+        $this.data('before', $this.html());
+        $this.trigger('change');
+    }
+    return $this;
+}).on('change', '[contenteditable]', function(){
+    var $this = $(this);
+    var key = $this.parent().parent().children('.kv_key').html();
+    $('#kv_action').val('update');
+    $('#kv_key').val(key);
+    $('#kv_value').val($this.html());
+    $('#kvdb_add_form').ajaxSubmit();
+    $('#kvdb_add_form').resetForm();
+    $('#kv_action').val('add');
+}).on('click', '.kv_del', function(){
+    var $this = $(this);
+    var $kv_key = $this.parent().parent().children('.kv_key');
+    var key = $kv_key.html();
+    var confirm_msg = '{% trans "Are you sure to delete " %}';
+    confirm_msg += '"'+ key + '" ? ';
+    var rt = confirm(confirm_msg);
+    if (rt == false){
+        return;
+    }
+    $('#kv_action').val('del');
+    $('#kv_key').val(key);
+    $('#kvdb_add_form').ajaxSubmit();
+    $('#kvdb_add_form').resetForm();
+    $('#kv_action').val('add');
+    $kv_key.parent().html('');
+}).on('click', '#submit_export_form', function(){
+    $('#kv_export_form').submit();
+    $('#export_modal').modal('hide');
+})
+</script>

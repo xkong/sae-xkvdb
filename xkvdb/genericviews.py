@@ -6,7 +6,7 @@
 # 2014/03/03
 #
 # GenericViews for xkvdb app
-# 
+#
 # Kvdb manager
 #
 import csv
@@ -18,8 +18,8 @@ from django.contrib.auth.decorators import user_passes_test
 from django.utils.decorators import method_decorator
 from django.http import StreamingHttpResponse
 
-import sae.kvdb
 import xlwt
+import sae.kvdb
 
 from .mixin import JSONResponseMixin
 
@@ -158,7 +158,7 @@ class KVDBExportView(JSONResponseMixin, View):
             ret[k] = v
         response = self.render_to_response(ret)
         response['Content-Disposition'] = 'attachment; filename="%s"' % \
-                                           filename
+            filename
         return response
 
     def _export_csv(self, request, ext='csv'):
@@ -167,17 +167,18 @@ class KVDBExportView(JSONResponseMixin, View):
 
         buffer_ = Echo()
         writer = csv.writer(buffer_)
-        response = StreamingHttpResponse((writer.writerow(row) for row in \
-                self.client.get_by_prefix(prefix, limit=int(limit))),
-                                         content_type='text/csv')
+        response = StreamingHttpResponse(
+            (writer.writerow(row) for row in self.client.get_by_prefix(
+                prefix, limit=int(limit))),
+            content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="%s"' %\
                                           filename
         return response
 
-    def _export_xls(self, request, ext='xls'): 
+    def _export_xls(self, request, ext='xls'):
         prefix, limit, filename = self._pre_export(request, ext=ext)
-        
-        # Zero-indexed  
+
+        # Zero-indexed
         MAX_ROW = 65532
 
         def stream():
@@ -186,9 +187,9 @@ class KVDBExportView(JSONResponseMixin, View):
             temp_file = StringIO()
             for j in range(int(limit) / MAX_ROW + 1):
                 ws_list.append(wb.add_sheet('%s_%s' % (prefix or 'all', j)))
-            sheet_index = index_ = 0;
+            sheet_index = index_ = 0
             for item in self.client.get_by_prefix(prefix, limit=int(limit)):
-                if index_ >  (sheet_index + 1) * MAX_ROW:
+                if index_ > (sheet_index + 1) * MAX_ROW:
                     sheet_index += 1
                 ws = ws_list[sheet_index]
                 ws.write(index_ - sheet_index * MAX_ROW, 0, item[0])
